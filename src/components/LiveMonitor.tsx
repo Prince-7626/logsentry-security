@@ -17,7 +17,11 @@ const levelColors: Record<string, string> = {
   ERROR: "text-threat-critical",
 };
 
-const LiveMonitor = () => {
+interface LiveMonitorProps {
+  onSaveHistory?: (data: AnalysisResult, source: string) => Promise<void>;
+}
+
+const LiveMonitor = ({ onSaveHistory }: LiveMonitorProps) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isStreaming, setIsStreaming] = useState(true);
   const [speed, setSpeed] = useState<number>(800);
@@ -82,6 +86,11 @@ const LiveMonitor = () => {
           }
         }
         prevThreatCountRef.current = newCount;
+
+        // Save to history when threats found
+        if (result.findings.length > 0 && onSaveHistory) {
+          onSaveHistory(result, "live-monitor");
+        }
       }
     } catch {
       // silent fail for live monitor
