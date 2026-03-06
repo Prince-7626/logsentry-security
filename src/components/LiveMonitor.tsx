@@ -86,6 +86,11 @@ const LiveMonitor = ({ onSaveHistory }: LiveMonitorProps) => {
           }
         }
         prevThreatCountRef.current = newCount;
+
+        // Save to history when threats found
+        if (result.findings.length > 0 && onSaveHistory) {
+          onSaveHistory(result, "live-monitor");
+        }
       }
     } catch {
       // silent fail for live monitor
