@@ -61,12 +61,12 @@ export async function requestNotificationPermission(): Promise<boolean> {
 export function sendThreatNotification(title: string, body: string) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
   try {
-    new Notification(title, {
+    const options: NotificationOptions & Record<string, unknown> = {
       body,
       icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>",
       tag: "logsentry-threat",
-      renotify: true,
-    });
+    };
+    new Notification(title, options);
   } catch {
     // Notifications not supported in this context
   }
