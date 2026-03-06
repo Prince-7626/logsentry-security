@@ -1,16 +1,27 @@
 import { useState } from "react";
-import { Shield, Terminal, FileText, Activity } from "lucide-react";
+import { Shield, Terminal, FileText, Activity, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LogInput from "@/components/LogInput";
 import AnalysisResults, { AnalysisResult } from "@/components/AnalysisResults";
 import LiveMonitor from "@/components/LiveMonitor";
+import AnalysisHistory from "@/components/AnalysisHistory";
 
 const Index = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const saveToHistory = async (data: AnalysisResult, source: string) => {
+    await supabase.from("analysis_history").insert({
+      total_lines: data.summary.total_lines,
+      suspicious_count: data.summary.suspicious_count,
+      threat_level: data.summary.threat_level,
+      findings: JSON.parse(JSON.stringify(data.findings)),
+      source,
+    });
+  };
 
   const handleAnalyze = async (logs: string) => {
     setIsLoading(true);
@@ -20,7 +31,9 @@ const Index = () => {
         body: { logs },
       });
       if (error) throw error;
-      setResult(data as AnalysisResult);
+      const analysisResult = data as AnalysisResult;
+      setResult(analysisResult);
+      await saveToHistory(analysisResult, "manual");
     } catch (err: any) {
       toast({
         title: "Analysis Failed",
@@ -64,15 +77,23 @@ const Index = () => {
               <FileText className="h-3.5 w-3.5" />
               Paste & Analyze
             </TabsTrigger>
+            <TabsTrigger value="history" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <History className="h-3.5 w-3.5" />
+              History
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="live">
-            <LiveMonitor />
+            <LiveMonitor onSaveHistory={saveToHistory} />
           </TabsContent>
 
           <TabsContent value="analyze" className="space-y-8">
             <LogInput onAnalyze={handleAnalyze} isLoading={isLoading} />
             <AnalysisResults result={result} />
+          </TabsContent>
+
+          <TabsContent value="history">
+            <AnalysisHistory />
           </TabsContent>
         </Tabs>
       </div>
