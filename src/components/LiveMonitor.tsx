@@ -17,7 +17,11 @@ const levelColors: Record<string, string> = {
   ERROR: "text-threat-critical",
 };
 
-const LiveMonitor = () => {
+interface LiveMonitorProps {
+  onSaveHistory?: (data: AnalysisResult, source: string) => Promise<void>;
+}
+
+const LiveMonitor = ({ onSaveHistory }: LiveMonitorProps) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isStreaming, setIsStreaming] = useState(true);
   const [speed, setSpeed] = useState<number>(800);
