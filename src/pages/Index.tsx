@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Shield, Terminal } from "lucide-react";
+import { Shield, Terminal, FileText, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LogInput from "@/components/LogInput";
 import AnalysisResults, { AnalysisResult } from "@/components/AnalysisResults";
+import LiveMonitor from "@/components/LiveMonitor";
 
 const Index = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -17,7 +19,6 @@ const Index = () => {
       const { data, error } = await supabase.functions.invoke("analyze-logs", {
         body: { logs },
       });
-
       if (error) throw error;
       setResult(data as AnalysisResult);
     } catch (err: any) {
@@ -33,7 +34,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background relative">
-      {/* Scanline overlay */}
       <div className="fixed inset-0 scanline z-10" />
 
       <div className="relative z-20 max-w-5xl mx-auto px-4 py-8">
@@ -54,10 +54,27 @@ const Index = () => {
           </div>
         </header>
 
-        <div className="grid gap-8">
-          <LogInput onAnalyze={handleAnalyze} isLoading={isLoading} />
-          <AnalysisResults result={result} />
-        </div>
+        <Tabs defaultValue="live" className="space-y-6">
+          <TabsList className="bg-card border border-border">
+            <TabsTrigger value="live" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Activity className="h-3.5 w-3.5" />
+              Live Monitor
+            </TabsTrigger>
+            <TabsTrigger value="analyze" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <FileText className="h-3.5 w-3.5" />
+              Paste & Analyze
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="live">
+            <LiveMonitor />
+          </TabsContent>
+
+          <TabsContent value="analyze" className="space-y-8">
+            <LogInput onAnalyze={handleAnalyze} isLoading={isLoading} />
+            <AnalysisResults result={result} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
