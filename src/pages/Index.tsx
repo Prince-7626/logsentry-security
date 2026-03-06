@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Shield, Terminal, FileText, Activity, History } from "lucide-react";
+import { Shield, Terminal, FileText, Activity, History, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import LogInput from "@/components/LogInput";
 import AnalysisResults, { AnalysisResult } from "@/components/AnalysisResults";
 import LiveMonitor from "@/components/LiveMonitor";
@@ -12,6 +14,7 @@ const Index = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
 
   const saveToHistory = async (data: AnalysisResult, source: string) => {
     await supabase.from("analysis_history").insert({
@@ -20,6 +23,7 @@ const Index = () => {
       threat_level: data.summary.threat_level,
       findings: JSON.parse(JSON.stringify(data.findings)),
       source,
+      user_id: user?.id,
     });
   };
 
@@ -51,19 +55,27 @@ const Index = () => {
 
       <div className="relative z-20 max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
-        <header className="flex items-center gap-3 mb-8">
-          <div className="h-10 w-10 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center glow-primary">
-            <Shield className="h-5 w-5 text-primary" />
+        <header className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 border border-primary/30 flex items-center justify-center glow-primary">
+              <Shield className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                LogSentry
+                <span className="text-xs font-mono text-primary animate-pulse-glow">● ONLINE</span>
+              </h1>
+              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <Terminal className="h-3 w-3" />
+                Suspicious Activity Detection Engine
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              LogSentry
-              <span className="text-xs font-mono text-primary animate-pulse-glow">● ONLINE</span>
-            </h1>
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
-              <Terminal className="h-3 w-3" />
-              Suspicious Activity Detection Engine
-            </p>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground font-mono hidden sm:block">{user?.email}</span>
+            <Button variant="outline" size="sm" onClick={signOut}>
+              <LogOut className="h-3 w-3 mr-1" /> Sign Out
+            </Button>
           </div>
         </header>
 
