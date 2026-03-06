@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Activity, Pause, Play, Trash2, AlertTriangle, Shield, Zap } from "lucide-react";
+import { Activity, Pause, Play, Trash2, AlertTriangle, Shield, Zap, Volume2, VolumeX, Bell, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { generateLogEntry, LogEntry } from "@/lib/logGenerator";
 import { supabase } from "@/integrations/supabase/client";
 import { AnalysisResult } from "@/components/AnalysisResults";
+import { playAlertSound, requestNotificationPermission, sendThreatNotification } from "@/lib/alertSystem";
 
 const MAX_LOGS = 200;
-const ANALYZE_INTERVAL = 15000; // auto-analyze every 15s
+const ANALYZE_INTERVAL = 15000;
 
 const levelColors: Record<string, string> = {
   INFO: "text-threat-low",
@@ -23,10 +24,13 @@ const LiveMonitor = () => {
   const [stats, setStats] = useState({ total: 0, suspicious: 0, errors: 0 });
   const [liveThreats, setLiveThreats] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const analyzeRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logsRef = useRef<LogEntry[]>([]);
+  const prevThreatCountRef = useRef(0);
 
   // Keep ref in sync
   useEffect(() => {
@@ -56,14 +60,35 @@ const LiveMonitor = () => {
         body: { logs: rawLogs },
       });
       if (!error && data) {
-        setLiveThreats(data as AnalysisResult);
+        const result = data as AnalysisResult;
+        setLiveThreats(result);
+
+        // Alert on new threats
+        const newCount = result.findings.length;
+        if (newCount > prevThreatCountRef.current && newCount > 0) {
+          const topSeverity = result.findings[0]?.severity || "medium";
+          const alertLevel = topSeverity === "critical" ? "critical" : topSeverity === "high" ? "high" : "medium";
+
+          if (soundEnabled) {
+            playAlertSound(alertLevel);
+          }
+          if (notificationsEnabled) {
+            const critCount = result.findings.filter((f) => f.severity === "critical").length;
+            const highCount = result.findings.filter((f) => f.severity === "high").length;
+            sendThreatNotification(
+              `⚠️ ${newCount} Threat${newCount > 1 ? "s" : ""} Detected`,
+              `${critCount} critical, ${highCount} high severity finding${highCount !== 1 ? "s" : ""} in latest scan.`
+            );
+          }
+        }
+        prevThreatCountRef.current = newCount;
       }
     } catch {
       // silent fail for live monitor
     } finally {
       setIsAnalyzing(false);
     }
-  }, []);
+  }, [soundEnabled, notificationsEnabled]);
 
   // Streaming interval
   useEffect(() => {
@@ -95,6 +120,16 @@ const LiveMonitor = () => {
     setLogs([]);
     setStats({ total: 0, suspicious: 0, errors: 0 });
     setLiveThreats(null);
+    prevThreatCountRef.current = 0;
+  };
+
+  const toggleNotifications = async () => {
+    if (!notificationsEnabled) {
+      const granted = await requestNotificationPermission();
+      setNotificationsEnabled(granted);
+    } else {
+      setNotificationsEnabled(false);
+    }
   };
 
   const suspiciousRate = stats.total > 0 ? ((stats.suspicious / stats.total) * 100).toFixed(1) : "0.0";
@@ -117,6 +152,22 @@ const LiveMonitor = () => {
           </Button>
           <Button variant="outline" size="sm" onClick={runAnalysis} disabled={isAnalyzing}>
             <Shield className="h-3 w-3 mr-1" /> {isAnalyzing ? "Analyzing..." : "Analyze Now"}
+          </Button>
+          <Button
+            variant={soundEnabled ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            title={soundEnabled ? "Mute alerts" : "Enable sound alerts"}
+          >
+            {soundEnabled ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
+          </Button>
+          <Button
+            variant={notificationsEnabled ? "default" : "outline"}
+            size="sm"
+            onClick={toggleNotifications}
+            title={notificationsEnabled ? "Disable notifications" : "Enable browser notifications"}
+          >
+            {notificationsEnabled ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}
           </Button>
         </div>
         <div className="flex items-center gap-2">
