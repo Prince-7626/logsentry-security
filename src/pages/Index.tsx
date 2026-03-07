@@ -95,7 +95,7 @@ const Index = () => {
               History
             </TabsTrigger>
             <TabsTrigger value="analytics" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <BarChart3 className="h-3.5 w-3.5" />
+              <TrendingUp className="h-3.5 w-3.5" />
               Analytics
             </TabsTrigger>
           </TabsList>
