@@ -125,7 +125,7 @@ LogSentry can be used for:
 ## Author
 
 Prince Kashyap  
-CyberPrince
+(CyberPrince)
 
 ---
 
