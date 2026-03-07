@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { TrendingUp, Globe, Crosshair, RefreshCw, CalendarIcon } from "lucide-react";
+import { TrendingUp, Globe, Crosshair, RefreshCw, CalendarIcon, Download } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -99,6 +100,125 @@ const AnalyticsDashboard = () => {
   const handleDateRangeSelect = (range: DateRange | undefined) => {
     setDateRange(range);
     setActivePreset("");
+  };
+
+  const downloadFile = (content: string, filename: string, mime: string) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportCSV = () => {
+    const headers = ["Date", "Threat Level", "Total Lines", "Suspicious Count", "Source", "Findings Count", "Finding Severities", "Finding Categories"];
+    const rows = filteredHistory.map((entry) => [
+      format(parseISO(entry.created_at), "yyyy-MM-dd HH:mm:ss"),
+      entry.threat_level,
+      entry.total_lines,
+      entry.suspicious_count,
+      entry.source,
+      entry.findings.length,
+      entry.findings.map((f) => f.severity).join("; "),
+      entry.findings.map((f) => f.category).join("; "),
+    ]);
+    const csv = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
+    downloadFile(csv, `logsentry-analytics-${format(new Date(), "yyyy-MM-dd")}.csv`, "text/csv");
+  };
+
+  const exportPDF = () => {
+    const dateLabel_ = dateRange?.from
+      ? dateRange.to
+        ? `${format(dateRange.from, "MMM d, yyyy")} – ${format(dateRange.to, "MMM d, yyyy")}`
+        : format(dateRange.from, "MMM d, yyyy")
+      : "All time";
+
+    const totalFindings = filteredHistory.reduce((s, e) => s + e.findings.length, 0);
+    const severityCounts: Record<string, number> = {};
+    filteredHistory.forEach((e) =>
+      e.findings.forEach((f) => {
+        const label = f.severity.charAt(0).toUpperCase() + f.severity.slice(1);
+        severityCounts[label] = (severityCounts[label] || 0) + 1;
+      })
+    );
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>LogSentry Threat Report</title>
+<style>
+  body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 40px; color: #1a1a2e; max-width: 800px; margin: 0 auto; }
+  h1 { font-size: 22px; border-bottom: 2px solid #0d9488; padding-bottom: 8px; }
+  h2 { font-size: 16px; color: #475569; margin-top: 28px; }
+  .meta { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+  .stat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; }
+  .stat .value { font-size: 28px; font-weight: 700; }
+  .stat .label { font-size: 11px; color: #64748b; margin-top: 4px; }
+  .critical { color: #dc2626; } .high { color: #ea580c; } .medium { color: #d97706; } .low { color: #0d9488; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 12px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+  th { background: #f1f5f9; font-weight: 600; color: #334155; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; color: white; }
+  .badge-critical { background: #dc2626; } .badge-high { background: #ea580c; } .badge-medium { background: #d97706; } .badge-low { background: #0d9488; }
+  .footer { margin-top: 32px; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+</style></head><body>
+<h1>🛡️ LogSentry Threat Report</h1>
+<p class="meta">Period: ${dateLabel_} · Generated: ${format(new Date(), "PPpp")}</p>
+
+<div class="stat-grid">
+  <div class="stat"><div class="value">${filteredHistory.length}</div><div class="label">Analyses</div></div>
+  <div class="stat"><div class="value critical">${totalFindings}</div><div class="label">Total Findings</div></div>
+  <div class="stat"><div class="value">${filteredHistory.reduce((s, e) => s + e.suspicious_count, 0)}</div><div class="label">Suspicious Events</div></div>
+</div>
+
+<h2>Severity Breakdown</h2>
+<div class="stat-grid" style="grid-template-columns: repeat(4, 1fr);">
+  ${["Critical", "High", "Medium", "Low"]
+    .map(
+      (s) =>
+        `<div class="stat"><div class="value ${s.toLowerCase()}">${severityCounts[s] || 0}</div><div class="label">${s}</div></div>`
+    )
+    .join("")}
+</div>
+
+<h2>Analysis Details</h2>
+<table>
+  <tr><th>Date</th><th>Threat</th><th>Lines</th><th>Suspicious</th><th>Findings</th><th>Source</th></tr>
+  ${filteredHistory
+    .slice()
+    .reverse()
+    .slice(0, 50)
+    .map(
+      (e) =>
+        `<tr><td>${format(parseISO(e.created_at), "MMM d, HH:mm")}</td><td><span class="badge badge-${e.threat_level.toLowerCase()}">${e.threat_level}</span></td><td>${e.total_lines}</td><td>${e.suspicious_count}</td><td>${e.findings.length}</td><td>${e.source}</td></tr>`
+    )
+    .join("")}
+</table>
+${filteredHistory.length > 50 ? `<p class="meta">Showing 50 of ${filteredHistory.length} analyses</p>` : ""}
+
+<h2>Top Findings</h2>
+<table>
+  <tr><th>Severity</th><th>Category</th><th>Description</th></tr>
+  ${filteredHistory
+    .flatMap((e) => e.findings)
+    .slice(0, 30)
+    .map(
+      (f) =>
+        `<tr><td><span class="badge badge-${f.severity}">${f.severity.toUpperCase()}</span></td><td>${f.category}</td><td>${f.description}</td></tr>`
+    )
+    .join("")}
+</table>
+
+<div class="footer">LogSentry · Suspicious Activity Detection Engine · Report auto-generated</div>
+</body></html>`;
+
+    const w = window.open("", "_blank");
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => w.print(), 500);
+    }
   };
 
   const threatOverTime = useMemo(() => {
@@ -234,6 +354,18 @@ const AnalyticsDashboard = () => {
               />
             </PopoverContent>
           </Popover>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Download className="h-3 w-3" /> Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportCSV}>Download CSV</DropdownMenuItem>
+              <DropdownMenuItem onClick={exportPDF}>Print / Save as PDF</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button variant="outline" size="sm" onClick={fetchHistory} disabled={loading}>
             <RefreshCw className={`h-3 w-3 mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
