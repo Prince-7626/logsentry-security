@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, Terminal, FileText, Activity, History, LogOut } from "lucide-react";
+import { Shield, Terminal, FileText, Activity, History, LogOut, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,6 +9,7 @@ import LogInput from "@/components/LogInput";
 import AnalysisResults, { AnalysisResult } from "@/components/AnalysisResults";
 import LiveMonitor from "@/components/LiveMonitor";
 import AnalysisHistory from "@/components/AnalysisHistory";
+import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 
 const Index = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -93,6 +94,10 @@ const Index = () => {
               <History className="h-3.5 w-3.5" />
               History
             </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <BarChart3 className="h-3.5 w-3.5" />
+              Analytics
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="live">
@@ -106,6 +111,10 @@ const Index = () => {
 
           <TabsContent value="history">
             <AnalysisHistory />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <AnalyticsDashboard />
           </TabsContent>
         </Tabs>
       </div>
