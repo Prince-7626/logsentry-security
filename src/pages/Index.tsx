@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, Terminal, FileText, Activity, History, LogOut, BarChart3 } from "lucide-react";
+import { Shield, Terminal, FileText, Activity, History, LogOut, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -95,7 +95,7 @@ const Index = () => {
               History
             </TabsTrigger>
             <TabsTrigger value="analytics" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <BarChart3 className="h-3.5 w-3.5" />
+              <TrendingUp className="h-3.5 w-3.5" />
               Analytics
             </TabsTrigger>
           </TabsList>
