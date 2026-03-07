@@ -1,73 +1,134 @@
-# Welcome to your Lovable project
+# LogSentry – Suspicious Activity Detection System
 
-## Project info
+LogSentry is a cybersecurity log analysis platform that analyzes server logs and detects suspicious activities such as brute force attacks, SQL injection, XSS, and path traversal attempts.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+This system helps security analysts identify potential threats through real-time monitoring and security analytics dashboards.
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## Live Demo
 
-**Use Lovable**
+https://logsentry-security.lovable.app
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## Features
 
-**Use your preferred IDE**
+- Real-time log monitoring
+- Suspicious IP detection
+- Attack severity classification
+- Threat analytics dashboard
+- Visualization of attacking IPs
+- Detection of common web attacks
+- Export security reports (CSV / PDF)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Supported Attack Detection
 
-Follow these steps:
+LogSentry can detect patterns related to:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- Brute Force Login Attempts
+- SQL Injection
+- Cross-Site Scripting (XSS)
+- Path Traversal Attacks
+- Suspicious IP activity
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Example attack patterns:
 
-# Step 3: Install the necessary dependencies.
-npm i
+| Attack Type | Example Pattern |
+|--------------|----------------|
+| Brute Force | Multiple failed login attempts |
+| SQL Injection | `' OR 1=1 --` |
+| XSS | `<script>alert(1)</script>` |
+| Path Traversal | `../../etc/passwd` |
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+---
 
-**Edit a file directly in GitHub**
+## System Architecture
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Server logs are collected or uploaded.
+2. Logs are parsed using pattern detection rules.
+3. Suspicious activity is detected using security patterns.
+4. Threat data is processed and analyzed.
+5. Results are visualized in the security analytics dashboard.
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Screenshots
 
-## What technologies are used for this project?
+### Dashboard
+Add dashboard screenshot here.
 
-This project is built with:
+### Threat Analytics
+Add analytics dashboard screenshot here.
 
-- Vite
-- TypeScript
+### Live Log Monitoring
+Add live monitoring screenshot here.
+
+---
+
+## Technologies Used
+
+- Python (Log analysis & detection logic)
 - React
-- shadcn-ui
+- TypeScript
 - Tailwind CSS
+- Vite
+- Security log parsing
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Installation
 
-## Can I connect a custom domain to my Lovable project?
+Clone the repository:
 
-Yes, you can!
+git clone https://github.com/Prince-7626/logsentry-security.git
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Navigate to project folder:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+cd logsentry-security
+
+Install dependencies:
+
+npm install
+
+Run development server:
+
+npm run dev
+
+---
+
+## Future Improvements
+
+- AI based anomaly detection
+- Integration with SIEM tools
+- Email alerts for critical attacks
+- Support for multiple log formats
+- Real-time attack notification system
+- Automated threat intelligence integration
+
+---
+
+## Security Use Cases
+
+LogSentry can be used for:
+
+- Monitoring web server logs
+- Detecting suspicious user activity
+- Identifying attack patterns
+- Security operations center (SOC) monitoring
+- Threat investigation and analytics
+
+---
+
+## Author
+
+Prince Kashyap  
+CyberPrince
+
+---
+
+## Project Purpose
+
+This project was developed as a cybersecurity log analysis system to demonstrate threat detection techniques and security monitoring dashboards.
