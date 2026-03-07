@@ -58,13 +58,13 @@ Example attack patterns:
 ## Screenshots
 
 ### Dashboard
-Add dashboard screenshot here.
+![Dashboard](dashboard.png)
 
 ### Threat Analytics
-Add analytics dashboard screenshot here.
+![Threat Analytics](analytics.png)
 
 ### Live Log Monitoring
-Add live monitoring screenshot here.
+![Live Monitor](live-monitor.png)
 
 ---
 
