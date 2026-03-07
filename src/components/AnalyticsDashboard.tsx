@@ -1,11 +1,15 @@
 import { useEffect, useState, useMemo } from "react";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { TrendingUp, Globe, Crosshair, RefreshCw } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { TrendingUp, Globe, Crosshair, RefreshCw, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { Finding } from "@/components/AnalysisResults";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay, subDays } from "date-fns";
+import { cn } from "@/lib/utils";
+import type { DateRange } from "react-day-picker";
 
 interface HistoryRow {
   id: string;
@@ -33,9 +37,21 @@ const PIE_COLORS = [
   "hsl(280, 60%, 60%)",
 ];
 
+const PRESET_RANGES = [
+  { label: "7d", days: 7 },
+  { label: "30d", days: 30 },
+  { label: "90d", days: 90 },
+  { label: "All", days: null },
+] as const;
+
 const AnalyticsDashboard = () => {
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
+  const [activePreset, setActivePreset] = useState<string>("30d");
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -60,9 +76,34 @@ const AnalyticsDashboard = () => {
     fetchHistory();
   }, []);
 
+  const filteredHistory = useMemo(() => {
+    if (!dateRange?.from) return history;
+    const from = startOfDay(dateRange.from);
+    const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+    return history.filter((entry) => {
+      const date = parseISO(entry.created_at);
+      return isWithinInterval(date, { start: from, end: to });
+    });
+  }, [history, dateRange]);
+
+  const handlePreset = (days: number | null) => {
+    if (days === null) {
+      setDateRange(undefined);
+      setActivePreset("All");
+    } else {
+      setDateRange({ from: subDays(new Date(), days), to: new Date() });
+      setActivePreset(`${days}d`);
+    }
+  };
+
+  const handleDateRangeSelect = (range: DateRange | undefined) => {
+    setDateRange(range);
+    setActivePreset("");
+  };
+
   const threatOverTime = useMemo(() => {
     const grouped: Record<string, { date: string; Critical: number; High: number; Medium: number; Low: number }> = {};
-    history.forEach((entry) => {
+    filteredHistory.forEach((entry) => {
       const day = format(parseISO(entry.created_at), "MMM d");
       if (!grouped[day]) grouped[day] = { date: day, Critical: 0, High: 0, Medium: 0, Low: 0 };
       const level = entry.threat_level as keyof typeof grouped[string];
@@ -71,11 +112,11 @@ const AnalyticsDashboard = () => {
       }
     });
     return Object.values(grouped);
-  }, [history]);
+  }, [filteredHistory]);
 
   const topIPs = useMemo(() => {
     const ipCount: Record<string, number> = {};
-    history.forEach((entry) => {
+    filteredHistory.forEach((entry) => {
       entry.findings.forEach((f) => {
         f.evidence.forEach((e) => {
           const ipMatch = e.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/);
@@ -89,11 +130,11 @@ const AnalyticsDashboard = () => {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
       .map(([ip, count]) => ({ ip, count }));
-  }, [history]);
+  }, [filteredHistory]);
 
   const topEndpoints = useMemo(() => {
     const epCount: Record<string, number> = {};
-    history.forEach((entry) => {
+    filteredHistory.forEach((entry) => {
       entry.findings.forEach((f) => {
         f.evidence.forEach((e) => {
           const pathMatch = e.match(/(?:GET|POST|PUT|DELETE|PATCH)\s+(\/\S+)/i);
@@ -108,18 +149,18 @@ const AnalyticsDashboard = () => {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
       .map(([endpoint, count]) => ({ endpoint, count }));
-  }, [history]);
+  }, [filteredHistory]);
 
   const severityDistribution = useMemo(() => {
     const counts: Record<string, number> = {};
-    history.forEach((entry) => {
+    filteredHistory.forEach((entry) => {
       entry.findings.forEach((f) => {
         const label = f.severity.charAt(0).toUpperCase() + f.severity.slice(1);
         counts[label] = (counts[label] || 0) + 1;
       });
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [history]);
+  }, [filteredHistory]);
 
   if (loading && history.length === 0) {
     return <p className="text-sm text-muted-foreground text-center py-8">Loading analytics...</p>;
@@ -142,17 +183,68 @@ const AnalyticsDashboard = () => {
     color: "hsl(180, 10%, 88%)",
   };
 
+  const dateLabel = dateRange?.from
+    ? dateRange.to
+      ? `${format(dateRange.from, "MMM d")} – ${format(dateRange.to, "MMM d, yyyy")}`
+      : format(dateRange.from, "MMM d, yyyy")
+    : "All time";
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
           Threat Analytics
         </h2>
-        <Button variant="outline" size="sm" onClick={fetchHistory} disabled={loading}>
-          <RefreshCw className={`h-3 w-3 mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Preset buttons */}
+          <div className="flex items-center rounded-md border border-border overflow-hidden">
+            {PRESET_RANGES.map((preset) => (
+              <button
+                key={preset.label}
+                onClick={() => handlePreset(preset.days)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-mono transition-colors",
+                  activePreset === preset.label
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card text-muted-foreground hover:bg-secondary"
+                )}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom date range picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs font-mono">
+                <CalendarIcon className="h-3 w-3" />
+                {dateLabel}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="range"
+                selected={dateRange}
+                onSelect={handleDateRangeSelect}
+                numberOfMonths={2}
+                disabled={(date) => date > new Date()}
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Button variant="outline" size="sm" onClick={fetchHistory} disabled={loading}>
+            <RefreshCw className={`h-3 w-3 mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+        </div>
       </div>
+
+      {/* Summary stat */}
+      <p className="text-xs text-muted-foreground font-mono">
+        Showing {filteredHistory.length} of {history.length} analyses
+      </p>
 
       {/* Threat Distribution Over Time */}
       <Card className="border-border bg-card">
@@ -177,7 +269,7 @@ const AnalyticsDashboard = () => {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-xs text-muted-foreground text-center py-8">No data</p>
+            <p className="text-xs text-muted-foreground text-center py-8">No data in selected range</p>
           )}
         </CardContent>
       </Card>
@@ -203,7 +295,7 @@ const AnalyticsDashboard = () => {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-8">No IP data extracted from findings</p>
+              <p className="text-xs text-muted-foreground text-center py-8">No IP data in selected range</p>
             )}
           </CardContent>
         </Card>
@@ -238,7 +330,7 @@ const AnalyticsDashboard = () => {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-8">No findings data</p>
+              <p className="text-xs text-muted-foreground text-center py-8">No findings in selected range</p>
             )}
           </CardContent>
         </Card>
@@ -264,7 +356,7 @@ const AnalyticsDashboard = () => {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-xs text-muted-foreground text-center py-8">No endpoint data extracted from findings</p>
+            <p className="text-xs text-muted-foreground text-center py-8">No endpoint data in selected range</p>
           )}
         </CardContent>
       </Card>
