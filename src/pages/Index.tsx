@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, Terminal, FileText, Activity, History, LogOut, TrendingUp } from "lucide-react";
+import { Shield, Terminal, FileText, Activity, History, LogOut, TrendingUp, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,7 @@ import AnalysisResults, { AnalysisResult } from "@/components/AnalysisResults";
 import LiveMonitor from "@/components/LiveMonitor";
 import AnalysisHistory from "@/components/AnalysisHistory";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
+import GeoMap from "@/components/GeoMap";
 
 const Index = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -98,6 +99,10 @@ const Index = () => {
               <TrendingUp className="h-3.5 w-3.5" />
               Analytics
             </TabsTrigger>
+            <TabsTrigger value="geomap" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Globe className="h-3.5 w-3.5" />
+              Geo Map
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="live">
@@ -115,6 +120,10 @@ const Index = () => {
 
           <TabsContent value="analytics">
             <AnalyticsDashboard />
+          </TabsContent>
+
+          <TabsContent value="geomap">
+            <GeoMap />
           </TabsContent>
         </Tabs>
       </div>
