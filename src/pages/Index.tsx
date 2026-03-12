@@ -121,6 +121,10 @@ const Index = () => {
           <TabsContent value="analytics">
             <AnalyticsDashboard />
           </TabsContent>
+
+          <TabsContent value="geomap">
+            <GeoMap />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
