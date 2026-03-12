@@ -1,5 +1,6 @@
-import { AlertTriangle, ShieldAlert, ShieldCheck, Info, Flame } from "lucide-react";
+import { AlertTriangle, ShieldAlert, ShieldCheck, Info, Flame, Brain, Radar, Target, Fingerprint, Search, Activity } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 export interface Finding {
   severity: "critical" | "high" | "medium" | "low" | "info";
@@ -7,6 +8,15 @@ export interface Finding {
   description: string;
   evidence: string[];
   recommendation: string;
+  detection_method?: string;
+  confidence?: number;
+}
+
+export interface AnomalyScores {
+  ip_anomaly: number;
+  request_anomaly: number;
+  auth_anomaly: number;
+  payload_anomaly: number;
 }
 
 export interface AnalysisResult {
@@ -16,6 +26,9 @@ export interface AnalysisResult {
     threat_level: string;
   };
   findings: Finding[];
+  ai_summary?: string;
+  anomaly_scores?: AnomalyScores;
+  analysis_type?: "ai" | "rule";
 }
 
 const severityConfig = {
@@ -26,9 +39,34 @@ const severityConfig = {
   info: { icon: Info, color: "bg-threat-info", label: "INFO" },
 };
 
+const detectionMethodConfig: Record<string, { icon: typeof Brain; label: string }> = {
+  anomaly_detection: { icon: Radar, label: "Anomaly Detection" },
+  pattern_recognition: { icon: Fingerprint, label: "Pattern Recognition" },
+  brute_force_detection: { icon: Target, label: "Brute Force Detection" },
+  suspicious_login: { icon: Search, label: "Suspicious Login" },
+  signature_matching: { icon: ShieldAlert, label: "Signature Matching" },
+  behavioral_analysis: { icon: Activity, label: "Behavioral Analysis" },
+};
+
 interface AnalysisResultsProps {
   result: AnalysisResult | null;
 }
+
+const AnomalyScoreBar = ({ label, score }: { label: string; score: number }) => {
+  const color =
+    score >= 70 ? "bg-threat-critical" : score >= 40 ? "bg-threat-medium" : "bg-threat-low";
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between items-center">
+        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="text-xs font-mono font-bold text-foreground">{score}/100</span>
+      </div>
+      <div className="h-2 rounded-full bg-muted overflow-hidden">
+        <div className={`h-full rounded-full ${color} transition-all duration-500`} style={{ width: `${score}%` }} />
+      </div>
+    </div>
+  );
+};
 
 const AnalysisResults = ({ result }: AnalysisResultsProps) => {
   if (!result) return null;
@@ -42,8 +80,26 @@ const AnalysisResults = ({ result }: AnalysisResultsProps) => {
       ? "text-threat-medium"
       : "text-threat-low";
 
+  const isAI = result.analysis_type === "ai";
+
   return (
     <div className="space-y-6">
+      {/* AI Badge */}
+      {isAI && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Brain className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold text-primary">AI-Powered Analysis</span>
+            <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+              ML Engine
+            </Badge>
+          </div>
+          {result.ai_summary && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{result.ai_summary}</p>
+          )}
+        </div>
+      )}
+
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-lg border border-border bg-card p-4 text-center">
@@ -60,6 +116,22 @@ const AnalysisResults = ({ result }: AnalysisResultsProps) => {
         </div>
       </div>
 
+      {/* Anomaly Scores */}
+      {isAI && result.anomaly_scores && (
+        <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Radar className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold tracking-tight">Anomaly Detection Scores</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <AnomalyScoreBar label="IP Anomaly" score={result.anomaly_scores.ip_anomaly} />
+            <AnomalyScoreBar label="Request Pattern" score={result.anomaly_scores.request_anomaly} />
+            <AnomalyScoreBar label="Authentication" score={result.anomaly_scores.auth_anomaly} />
+            <AnomalyScoreBar label="Payload / Input" score={result.anomaly_scores.payload_anomaly} />
+          </div>
+        </div>
+      )}
+
       {/* Findings */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold tracking-tight">Findings</h3>
@@ -72,17 +144,42 @@ const AnalysisResults = ({ result }: AnalysisResultsProps) => {
           result.findings.map((finding, i) => {
             const config = severityConfig[finding.severity];
             const Icon = config.icon;
+            const methodInfo = finding.detection_method
+              ? detectionMethodConfig[finding.detection_method]
+              : null;
+            const MethodIcon = methodInfo?.icon || Brain;
+
             return (
               <div key={i} className="rounded-lg border border-border bg-card overflow-hidden">
-                <div className="flex items-center gap-3 p-4 border-b border-border">
+                <div className="flex items-center gap-3 p-4 border-b border-border flex-wrap">
                   <Badge className={`${config.color} text-xs font-mono`}>
                     <Icon className="h-3 w-3 mr-1" />
                     {config.label}
                   </Badge>
                   <span className="text-sm font-medium">{finding.category}</span>
+                  {methodInfo && (
+                    <Badge variant="outline" className="text-[10px] font-mono gap-1 border-primary/20 text-primary ml-auto">
+                      <MethodIcon className="h-3 w-3" />
+                      {methodInfo.label}
+                    </Badge>
+                  )}
+                  {finding.confidence != null && (
+                    <Badge variant="outline" className="text-[10px] font-mono border-muted-foreground/30">
+                      {Math.round(finding.confidence * 100)}% conf
+                    </Badge>
+                  )}
                 </div>
                 <div className="p-4 space-y-3">
                   <p className="text-sm text-foreground">{finding.description}</p>
+
+                  {/* Confidence bar */}
+                  {finding.confidence != null && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Confidence</p>
+                      <Progress value={finding.confidence * 100} className="h-1.5" />
+                    </div>
+                  )}
+
                   {finding.evidence.length > 0 && (
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Evidence</p>
