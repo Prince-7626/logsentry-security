@@ -32,7 +32,7 @@ const Index = () => {
     setIsLoading(true);
     setResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-logs", {
+      const { data, error } = await supabase.functions.invoke("ai-analyze-logs", {
         body: { logs },
       });
       if (error) throw error;

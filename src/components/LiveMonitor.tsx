@@ -60,7 +60,7 @@ const LiveMonitor = ({ onSaveHistory }: LiveMonitorProps) => {
     setIsAnalyzing(true);
     try {
       const rawLogs = currentLogs.map((l) => l.raw).join("\n");
-      const { data, error } = await supabase.functions.invoke("analyze-logs", {
+      const { data, error } = await supabase.functions.invoke("ai-analyze-logs", {
         body: { logs: rawLogs },
       });
       if (!error && data) {
