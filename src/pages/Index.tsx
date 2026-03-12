@@ -10,6 +10,7 @@ import AnalysisResults, { AnalysisResult } from "@/components/AnalysisResults";
 import LiveMonitor from "@/components/LiveMonitor";
 import AnalysisHistory from "@/components/AnalysisHistory";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
+import GeoMap from "@/components/GeoMap";
 
 const Index = () => {
   const [result, setResult] = useState<AnalysisResult | null>(null);
