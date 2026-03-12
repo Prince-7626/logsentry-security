@@ -99,6 +99,10 @@ const Index = () => {
               <TrendingUp className="h-3.5 w-3.5" />
               Analytics
             </TabsTrigger>
+            <TabsTrigger value="geomap" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Globe className="h-3.5 w-3.5" />
+              Geo Map
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="live">
